@@ -1,0 +1,41 @@
+# Python / build artifacts
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+.env/
+.envrc
+venv/
+
+# Tooling caches
+.mypy_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+.hypothesis/
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ansible / collection outputs
+*.retry
+.ansible/
+collections/*.tar.gz
+ansible_collections/
+
+# Local configuration
+inventory.local.yml
+tests/integration/inventory
+*.tfstate*
+.vm_target

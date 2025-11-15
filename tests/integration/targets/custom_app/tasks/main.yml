@@ -1,0 +1,93 @@
+---
+- name: Define integration test inputs
+  ansible.builtin.set_fact:
+    custom_app_name: "{{ lookup('ansible.builtin.env', 'TRUENAS_LIVE_APP_NAME') | default('ansible-integration-custom-app', true) }}"
+    redis_compose:
+      services:
+        redis:
+          image: redis:alpine
+    redis_updated_compose:
+      services:
+        redis:
+          image: redis:7
+
+- name: Ensure starting state is clean
+  become: true
+  mareckii.truenas_scale.custom_app:
+    name: "{{ custom_app_name }}"
+    state: absent
+  register: cleanup_result
+
+- name: Create redis custom application on target host
+  become: true
+  mareckii.truenas_scale.custom_app:
+    name: "{{ custom_app_name }}"
+    compose_config: "{{ redis_compose }}"
+  register: create_result
+
+- name: Assert creation result matches expectations
+  ansible.builtin.assert:
+    that:
+      - create_result.changed
+      - create_result.state == 'present'
+      - create_result.diff.before is none
+      - create_result.diff.after.services.redis.image == 'redis:alpine'
+    fail_msg: custom_app creation did not match expectations
+
+- name: Invoke module again to verify idempotency
+  become: true
+  mareckii.truenas_scale.custom_app:
+    name: "{{ custom_app_name }}"
+    compose_config: "{{ redis_compose }}"
+  register: idempotent_result
+
+- name: Ensure module reports no changes when compose matches
+  ansible.builtin.assert:
+    that:
+      - not idempotent_result.changed
+      - idempotent_result.diff.before.services.redis.image == 'redis:alpine'
+      - idempotent_result.diff.after.services.redis.image == 'redis:alpine'
+    fail_msg: Expected no changes when compose matched
+
+- name: Update compose configuration on target host
+  become: true
+  mareckii.truenas_scale.custom_app:
+    name: "{{ custom_app_name }}"
+    compose_config: "{{ redis_updated_compose }}"
+  register: update_result
+
+- name: Assert update result reports a diff
+  ansible.builtin.assert:
+    that:
+      - update_result.changed
+      - update_result.diff.before.services.redis.image == 'redis:alpine'
+      - update_result.diff.after.services.redis.image == 'redis:7'
+    fail_msg: Compose update did not identify expected difference
+
+- name: Remove the application
+  become: true
+  mareckii.truenas_scale.custom_app:
+    name: "{{ custom_app_name }}"
+    state: absent
+  register: delete_result
+
+- name: Assert removal result
+  ansible.builtin.assert:
+    that:
+      - delete_result.changed
+      - delete_result.state == 'absent'
+    fail_msg: Module did not report removal
+
+- name: Ensure module is idempotent when already absent
+  become: true
+  mareckii.truenas_scale.custom_app:
+    name: "{{ custom_app_name }}"
+    state: absent
+  register: absent_result
+
+- name: Assert already absent result
+  ansible.builtin.assert:
+    that:
+      - not absent_result.changed
+      - '"already absent" in absent_result.message'
+    fail_msg: Module should have reported already absent
