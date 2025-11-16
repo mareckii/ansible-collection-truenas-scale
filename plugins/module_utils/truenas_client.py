@@ -78,6 +78,14 @@ class TruenasClient:
         app = self._client.call("app.delete", name, job=True)
         return app
 
+    def stop_custom_app(self, name: str):
+        app = self._client.call("app.stop", name, job=True)
+        return app
+
+    def start_custom_app(self, name: str):
+        app = self._client.call("app.start", name, job=True)
+        return app
+
 
 class _StubApiClient:
     """File-backed stub used for ansible-test integration runs."""
@@ -117,6 +125,12 @@ class _StubApiClient:
         if method == "app.delete":
             name = args[0]
             return self._delete_app(state, name)
+        if method == "app.stop":
+            name = args[0]
+            return self._set_state(state, name, "STOPPED")
+        if method == "app.start":
+            name = args[0]
+            return self._set_state(state, name, "DEPLOYING")
         raise ValueError("Unsupported stub call: {}".format(method))
 
     def _create_app(self, state: Dict[str, Any], payload: Dict[str, Any]):
@@ -155,6 +169,14 @@ class _StubApiClient:
         state["apps"] = remaining
         self._write_state(state)
         return {"name": name, "state": "DELETING"}
+
+    def _set_state(self, state: Dict[str, Any], name: str, value: str):
+        for app in state["apps"]:
+            if app["name"] == name:
+                app["state"] = value
+                self._write_state(state)
+                return dict(app)
+        raise ValueError("Application '{}' not found".format(name))
 
     def _write_user_config(self, name: str, version: str, compose: Dict[str, Any]):
         if yaml is None:

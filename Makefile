@@ -22,7 +22,7 @@ ifeq ($(firstword $(MAKECMDGOALS)),integration)
   endif
 endif
 
-.PHONY: venv sanity unit integration units integrations all clean-venv
+.PHONY: venv sanity unit integration units integrations docs all clean-venv
 
 venv: $(VENV_STAMP)
 
@@ -46,12 +46,24 @@ ifeq ($(VM_TARGET),)
 	@echo "Missing $(VM_TARGET_FILE); create it with user@host to run live integration tests."
 	@exit 1
 else
-	$(ANSIBLE_TEST) integration $(if $(INTEGRATION_NAME),$(INTEGRATION_NAME)) --allow-unsupported --target "ssh:$(VM_TARGET),python=$(VM_TARGET_PYTHON)"
+	$(ANSIBLE_TEST) integration $(if $(INTEGRATION_NAME),$(INTEGRATION_NAME)) --allow-unsupported --target "ssh:$(VM_TARGET),python=$(VM_TARGET_PYTHON)" $(INTEGRATION_DEBUG)
 endif
 
 integrations: integration
 
 all: sanity unit integration
 
+docs: venv
+	$(VENV)/bin/antsibull-docs collection \
+	  --use-current \
+	  --dest-dir docs \
+	  --squash-hierarchy \
+	  --output-format simplified-rst \
+	  mareckii.truenas_scale
+
 clean-venv:
 	rm -rf $(VENV)
+# Allow "make integration DEBUG=1" to append -vvv
+ifdef DEBUG
+  INTEGRATION_DEBUG := -vvv
+endif

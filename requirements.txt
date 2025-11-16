@@ -2,4 +2,5 @@ ansible==12.2.0
 paramiko==4.0.0
 pytest-ansible==25.11.1
 pytest-xdist==3.8.0
+antsibull-docs==2.22.0
 truenas_api_client@git+https://github.com/truenas/api_client.git@TS-25.10.0

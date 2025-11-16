@@ -13,11 +13,11 @@ Collection version 0.1.0
 Description
 -----------
 
-your collection description
+Ansible collection that automates management of TrueNAS SCALE resources.
 
 **Author:**
 
-* your name <example@domain.com>
+* mareckii
 
 **Supported ansible-core versions:**
 
@@ -26,9 +26,8 @@ your collection description
 Collection links
 ~~~~~~~~~~~~~~~~
 
-* `Issue Tracker <http://example.com/issue/tracker>`__
-* `Homepage <http://example.com>`__
-* `Repository (Sources) <http://example.com/repository>`__
+* `Issue Tracker <https://github.com/mareckii/ansible\-collection\-truenas\-scale/issues>`__
+* `Repository (Sources) <https://github.com/mareckii/ansible\-collection\-truenas\-scale.git>`__
 
 
 Plugin Index

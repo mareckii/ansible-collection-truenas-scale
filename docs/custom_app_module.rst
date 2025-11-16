@@ -8,7 +8,7 @@ This module is part of the `mareckii.truenas_scale collection <https://galaxy.an
 It is not included in ``ansible-core``.
 To check whether it is installed, run ``ansible-galaxy collection list``.
 
-To install it, use: :code:`ansible-galaxy collection install mareckii.truenas_scale`.
+To install it, use: :code:`ansible\-galaxy collection install mareckii.truenas\_scale`.
 
 To use it in a playbook, specify: ``mareckii.truenas_scale.custom_app``.
 
@@ -261,6 +261,5 @@ Authors
 Collection links
 ~~~~~~~~~~~~~~~~
 
-* `Issue Tracker <http://example.com/issue/tracker>`__
-* `Homepage <http://example.com>`__
-* `Repository (Sources) <http://example.com/repository>`__
+* `Issue Tracker <https://github.com/mareckii/ansible\-collection\-truenas\-scale/issues>`__
+* `Repository (Sources) <https://github.com/mareckii/ansible\-collection\-truenas\-scale.git>`__

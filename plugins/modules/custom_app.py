@@ -29,6 +29,7 @@ options:
     choices:
       - present
       - absent
+      - restarted
     default: present
 author:
   - Marecki (@mareckii)
@@ -57,6 +58,11 @@ EXAMPLES = r"""
   mareckii.truenas_scale.custom_app:
     name: redis
     state: absent
+
+- name: Restart a custom application
+  mareckii.truenas_scale.custom_app:
+    name: redis
+    state: restarted
 
 # Equivalent ad-hoc invocation
 # ansible -i inventory.local.yml truenas_test \
@@ -103,7 +109,7 @@ def main():
         argument_spec=dict(
             name=dict(type='str', required=True),
             compose_config=dict(type='dict', required=False),
-            state=dict(default='present', choices=['present', 'absent'], type='str'),
+            state=dict(default='present', choices=['present', 'absent', 'restarted'], type='str'),
         ),
         required_if=[('state', 'present', ['compose_config'])],
         supports_check_mode=True,
@@ -140,6 +146,29 @@ def main():
                 changed=True,
                 state='absent',
                 message="Application '{}' was removed".format(name),
+                application=application,
+            )
+
+        if state == 'restarted':
+            if not application:
+                module.fail_json(
+                    msg="Application '{}' is absent; cannot restart".format(name)
+                )
+
+            if module.check_mode:
+                module.exit_json(
+                    changed=True,
+                    state='restarted',
+                    message="Application '{}' would be restarted".format(name),
+                    application=application,
+                )
+
+            client.stop_custom_app(application["name"])
+            client.start_custom_app(application["name"])
+            module.exit_json(
+                changed=True,
+                state='restarted',
+                message="Application '{}' was restarted".format(name),
                 application=application,
             )
 

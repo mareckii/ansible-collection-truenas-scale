@@ -16,7 +16,13 @@ Ansible collection that automates management of TrueNAS SCALE resources. The ini
 
 ## Getting started
 
-Install the collection just like any other Galaxy package once published, then call the modules directly from your playbooks:
+Until the collection is published to Galaxy you can install it straight from GitHub:
+
+```bash
+ansible-galaxy collection install git@github.com:mareckii/ansible-collection-truenas-scale.git
+```
+
+Once installed, call the modules directly from your playbooks:
 
 ```yaml
 - name: Deploy redis custom application

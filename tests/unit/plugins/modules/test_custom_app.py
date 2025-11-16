@@ -238,3 +238,89 @@ def test_custom_app_absent_deletes_application(monkeypatch):
     assert result["state"] == "absent"
     assert "was removed" in result["message"]
     assert instances[0].deleted == "redis"
+
+
+def test_custom_app_restart_runs_stop_start(monkeypatch):
+    params = {"name": "redis", "state": "restarted"}
+    _patch_module(monkeypatch, params)
+    instances = []
+
+    class FakeClient:
+        def __init__(self):
+            instances.append(self)
+            self.stopped = None
+            self.started = None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def find_application(self, name):
+            return {"name": name, "version": "1.0", "custom_app": True}
+
+        def stop_custom_app(self, name):
+            self.stopped = name
+
+        def start_custom_app(self, name):
+            self.started = name
+
+    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+
+    with pytest.raises(ModuleExit) as captured:
+        custom_app.main()
+
+    result = captured.value.kwargs
+    assert result["changed"] is True
+    assert result["state"] == "restarted"
+    assert result["message"] == "Application 'redis' was restarted"
+    assert instances[0].stopped == "redis"
+    assert instances[0].started == "redis"
+
+
+def test_custom_app_restart_check_mode(monkeypatch):
+    params = {"name": "redis", "state": "restarted"}
+    _patch_module(monkeypatch, params, check_mode=True)
+
+    class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def find_application(self, name):
+            return {"name": name, "version": "1.0", "custom_app": True}
+
+    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+
+    with pytest.raises(ModuleExit) as captured:
+        custom_app.main()
+
+    result = captured.value.kwargs
+    assert result["changed"] is True
+    assert result["state"] == "restarted"
+    assert "would be restarted" in result["message"]
+
+
+def test_custom_app_restart_requires_existing_app(monkeypatch):
+    params = {"name": "redis", "state": "restarted"}
+    _patch_module(monkeypatch, params)
+
+    class FakeClient:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def find_application(self, name):
+            return None
+
+    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+
+    with pytest.raises(ModuleFail) as captured:
+        custom_app.main()
+
+    assert "cannot restart" in captured.value.kwargs["msg"]

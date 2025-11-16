@@ -91,3 +91,25 @@
       - not absent_result.changed
       - '"already absent" in absent_result.message'
     fail_msg: Module should have reported already absent
+
+- name: Re-create application for restart verification
+  become: true
+  mareckii.truenas_scale.custom_app:
+    name: "{{ custom_app_name }}"
+    compose_config: "{{ redis_compose }}"
+  register: restart_create
+
+- name: Restart the application
+  become: true
+  mareckii.truenas_scale.custom_app:
+    name: "{{ custom_app_name }}"
+    state: restarted
+  register: restart_result
+
+- name: Assert restart result
+  ansible.builtin.assert:
+    that:
+      - restart_result.changed
+      - restart_result.state == 'restarted'
+      - '"was restarted" in restart_result.message'
+    fail_msg: Module did not report restart
