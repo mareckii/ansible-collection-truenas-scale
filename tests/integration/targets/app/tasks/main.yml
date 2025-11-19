@@ -1,7 +1,7 @@
 ---
 - name: Define integration test inputs
   ansible.builtin.set_fact:
-    custom_app_name: "{{ lookup('ansible.builtin.env', 'TRUENAS_LIVE_APP_NAME') | default('ansible-integration-custom-app', true) }}"
+    app_name: "{{ lookup('ansible.builtin.env', 'TRUENAS_LIVE_APP_NAME') | default('ansible-integration-custom-app', true) }}"
     redis_compose:
       services:
         redis:
@@ -13,15 +13,15 @@
 
 - name: Ensure starting state is clean
   become: true
-  mareckii.truenas_scale.custom_app:
-    name: "{{ custom_app_name }}"
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
     state: absent
   register: cleanup_result
 
 - name: Create redis custom application on target host
   become: true
-  mareckii.truenas_scale.custom_app:
-    name: "{{ custom_app_name }}"
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
     compose_config: "{{ redis_compose }}"
   register: create_result
 
@@ -32,12 +32,12 @@
       - create_result.state == 'present'
       - create_result.diff.before is none
       - create_result.diff.after.services.redis.image == 'redis:alpine'
-    fail_msg: custom_app creation did not match expectations
+    fail_msg: app creation did not match expectations
 
 - name: Invoke module again to verify idempotency
   become: true
-  mareckii.truenas_scale.custom_app:
-    name: "{{ custom_app_name }}"
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
     compose_config: "{{ redis_compose }}"
   register: idempotent_result
 
@@ -51,8 +51,8 @@
 
 - name: Update compose configuration on target host
   become: true
-  mareckii.truenas_scale.custom_app:
-    name: "{{ custom_app_name }}"
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
     compose_config: "{{ redis_updated_compose }}"
   register: update_result
 
@@ -66,8 +66,8 @@
 
 - name: Remove the application
   become: true
-  mareckii.truenas_scale.custom_app:
-    name: "{{ custom_app_name }}"
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
     state: absent
   register: delete_result
 
@@ -80,8 +80,8 @@
 
 - name: Ensure module is idempotent when already absent
   become: true
-  mareckii.truenas_scale.custom_app:
-    name: "{{ custom_app_name }}"
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
     state: absent
   register: absent_result
 
@@ -94,15 +94,15 @@
 
 - name: Re-create application for restart verification
   become: true
-  mareckii.truenas_scale.custom_app:
-    name: "{{ custom_app_name }}"
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
     compose_config: "{{ redis_compose }}"
   register: restart_create
 
 - name: Restart the application
   become: true
-  mareckii.truenas_scale.custom_app:
-    name: "{{ custom_app_name }}"
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
     state: restarted
   register: restart_result
 
@@ -113,3 +113,17 @@
       - restart_result.state == 'restarted'
       - '"was restarted" in restart_result.message'
     fail_msg: Module did not report restart
+
+- name: Cleanup application after restart test
+  become: true
+  mareckii.truenas_scale.app:
+    name: "{{ app_name }}"
+    state: absent
+  register: restart_cleanup_result
+
+- name: Assert cleanup result after restart
+  ansible.builtin.assert:
+    that:
+      - restart_cleanup_result.changed
+      - restart_cleanup_result.state == 'absent'
+    fail_msg: Restart cleanup did not remove application

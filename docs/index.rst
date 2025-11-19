@@ -39,4 +39,4 @@ These are the plugins in the mareckii.truenas_scale collection:
 Modules
 ~~~~~~~
 
-* `custom_app module <custom_app_module.rst>`_ -- Manage TrueNAS SCALE custom applications
+* `app module <app_module.rst>`_ -- Manage TrueNAS SCALE applications

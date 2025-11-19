@@ -33,6 +33,9 @@ coverage.xml
 .ansible/
 collections/*.tar.gz
 ansible_collections/
+collections
+tmp
+tmp_home
 
 # Local configuration
 inventory.local.yml

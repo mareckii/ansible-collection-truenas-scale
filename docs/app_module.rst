@@ -1,7 +1,7 @@
 .. Created with antsibull-docs 2.22.0
 
-mareckii.truenas_scale.custom_app module -- Manage TrueNAS SCALE custom applications
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+mareckii.truenas_scale.app module -- Manage TrueNAS SCALE applications
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 This module is part of the `mareckii.truenas_scale collection <https://galaxy.ansible.com/ui/repo/published/mareckii/truenas_scale/>`_ (version 0.1.0).
 
@@ -10,7 +10,7 @@ To check whether it is installed, run ``ansible-galaxy collection list``.
 
 To install it, use: :code:`ansible\-galaxy collection install mareckii.truenas\_scale`.
 
-To use it in a playbook, specify: ``mareckii.truenas_scale.custom_app``.
+To use it in a playbook, specify: ``mareckii.truenas_scale.app``.
 
 
 .. contents::
@@ -21,7 +21,8 @@ To use it in a playbook, specify: ``mareckii.truenas_scale.custom_app``.
 Synopsis
 --------
 
-- Create a new TrueNAS SCALE custom application or report the difference between an existing application's current compose configuration and the desired state.
+- Create or reconcile TrueNAS SCALE applications backed by custom compose deployments.
+- Catalog\-driven applications are not supported because the underlying API does not expose the methods required to manage marketplace apps yet.
 
 
 
@@ -87,6 +88,7 @@ Parameters
       <ul>
         <li><p><code style="color: blue;"><b>&#34;present&#34;</b></code> <span style="color: blue;">← (default)</span></p></li>
         <li><p><code>&#34;absent&#34;</code></p></li>
+        <li><p><code>&#34;restarted&#34;</code></p></li>
       </ul>
 
     </td>
@@ -108,7 +110,7 @@ Attributes
     - Support
     - Description
 
-  * - .. _ansible_collections.mareckii.truenas_scale.custom_app_module__attribute-check_mode:
+  * - .. _ansible_collections.mareckii.truenas_scale.app_module__attribute-check_mode:
 
       **check_mode**
 
@@ -121,7 +123,7 @@ Attributes
 
 
 
-  * - .. _ansible_collections.mareckii.truenas_scale.custom_app_module__attribute-diff_mode:
+  * - .. _ansible_collections.mareckii.truenas_scale.app_module__attribute-diff_mode:
 
       **diff_mode**
 
@@ -134,7 +136,7 @@ Attributes
 
 
 
-  * - .. _ansible_collections.mareckii.truenas_scale.custom_app_module__attribute-platform:
+  * - .. _ansible_collections.mareckii.truenas_scale.app_module__attribute-platform:
 
       **platform**
 
@@ -155,7 +157,7 @@ Examples
 .. code-block:: yaml
 
     - name: Ensure a Redis custom application exists (playbook task)
-      mareckii.truenas_scale.custom_app:
+      mareckii.truenas_scale.app:
         name: redis
         compose_config:
           services:
@@ -163,13 +165,18 @@ Examples
               image: redis:alpine
 
     - name: Remove a custom application
-      mareckii.truenas_scale.custom_app:
+      mareckii.truenas_scale.app:
         name: redis
         state: absent
 
+    - name: Restart a custom application
+      mareckii.truenas_scale.app:
+        name: redis
+        state: restarted
+
     # Equivalent ad-hoc invocation
     # ansible -i inventory.local.yml truenas_test \
-    #   -m mareckii.truenas_scale.custom_app \
+    #   -m mareckii.truenas_scale.app \
     #   -a '{"name": "redis", "compose_config": {"services": {"redis": {"image": "redis:alpine"}}}}'
 
 

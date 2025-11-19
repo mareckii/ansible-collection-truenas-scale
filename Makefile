@@ -54,6 +54,7 @@ integrations: integration
 all: sanity unit integration
 
 docs: venv
+	ansible-galaxy collection install --force .
 	$(VENV)/bin/antsibull-docs collection \
 	  --use-current \
 	  --dest-dir docs \

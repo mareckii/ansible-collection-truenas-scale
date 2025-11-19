@@ -51,7 +51,7 @@ class TruenasClient:
         else:
             return None
 
-    def create_custom_app(self, name: str, compose_config: dict):
+    def create_app(self, name: str, compose_config: dict):
         app = self._client.call(
             "app.create",
             {
@@ -63,7 +63,7 @@ class TruenasClient:
         )
         return app
 
-    def update_custom_app(self, name: str, compose_config: dict):
+    def update_app(self, name: str, compose_config: dict):
         app = self._client.call(
             "app.update",
             name,
@@ -74,15 +74,15 @@ class TruenasClient:
         )
         return app
 
-    def delete_custom_app(self, name: str):
+    def delete_app(self, name: str):
         app = self._client.call("app.delete", name, job=True)
         return app
 
-    def stop_custom_app(self, name: str):
+    def stop_app(self, name: str):
         app = self._client.call("app.stop", name, job=True)
         return app
 
-    def start_custom_app(self, name: str):
+    def start_app(self, name: str):
         app = self._client.call("app.start", name, job=True)
         return app
 

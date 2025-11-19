@@ -3,12 +3,12 @@
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 DOCUMENTATION = r"""
----
-module: custom_app
-short_description: Manage TrueNAS SCALE custom applications
+module: app
+short_description: Manage TrueNAS SCALE applications
 description:
-  - Create a new TrueNAS SCALE custom application or report the difference between
-    an existing application's current compose configuration and the desired state.
+  - Create or reconcile TrueNAS SCALE applications backed by custom compose deployments.
+  - Catalog-driven applications are not supported because the underlying API does not expose
+    the methods required to manage marketplace apps yet.
 options:
   name:
     description:
@@ -47,7 +47,7 @@ attributes:
 
 EXAMPLES = r"""
 - name: Ensure a Redis custom application exists (playbook task)
-  mareckii.truenas_scale.custom_app:
+  mareckii.truenas_scale.app:
     name: redis
     compose_config:
       services:
@@ -55,18 +55,18 @@ EXAMPLES = r"""
           image: redis:alpine
 
 - name: Remove a custom application
-  mareckii.truenas_scale.custom_app:
+  mareckii.truenas_scale.app:
     name: redis
     state: absent
 
 - name: Restart a custom application
-  mareckii.truenas_scale.custom_app:
+  mareckii.truenas_scale.app:
     name: redis
     state: restarted
 
 # Equivalent ad-hoc invocation
 # ansible -i inventory.local.yml truenas_test \
-#   -m mareckii.truenas_scale.custom_app \
+#   -m mareckii.truenas_scale.app \
 #   -a '{"name": "redis", "compose_config": {"services": {"redis": {"image": "redis:alpine"}}}}'
 """
 
@@ -122,7 +122,7 @@ def main():
         application = client.find_application(name)
         if application and not application.get('custom_app'):
             module.fail_json(
-                msg="Application with name '{}' is not custom_app".format(name)
+                msg="Application with name '{}' is not a custom application".format(name)
             )
 
         if state == 'absent':
@@ -141,7 +141,7 @@ def main():
                     application=application,
                 )
 
-            client.delete_custom_app(application["name"])
+            client.delete_app(application["name"])
             module.exit_json(
                 changed=True,
                 state='absent',
@@ -163,8 +163,8 @@ def main():
                     application=application,
                 )
 
-            client.stop_custom_app(application["name"])
-            client.start_custom_app(application["name"])
+            client.stop_app(application["name"])
+            client.start_app(application["name"])
             module.exit_json(
                 changed=True,
                 state='restarted',
@@ -181,7 +181,7 @@ def main():
                     diff={'before': None, 'after': compose_config},
                 )
 
-            app = client.create_custom_app(name, compose_config)
+            app = client.create_app(name, compose_config)
             app_name = getattr(app, 'name', None)
             app_state = getattr(app, 'state', None)
             module.exit_json(
@@ -227,7 +227,7 @@ def main():
             if module.check_mode:
                 message = "Application {} would be updated".format(name)
             else:
-                client.update_custom_app(application["name"], compose_config)
+                client.update_app(application["name"], compose_config)
                 message = "Application '{}' compose config differs from desired state".format(
                     application["name"]
                 )

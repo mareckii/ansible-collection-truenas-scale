@@ -13,7 +13,7 @@ make unit
 This runs `ansible-test units --python 3.11 -v` inside `.venv`. To invoke pytest directly (useful when iterating on a single file):
 
 ```bash
-  .venv/bin/python -m pytest tests/unit/plugins/modules/test_custom_app.py
+  .venv/bin/python -m pytest tests/unit/plugins/modules/test_app.py
 ```
 
 
@@ -28,7 +28,7 @@ Then run:
 
 ```bash
 make integration            # run the entire suite
-make integration custom_app # run a single target
+make integration app # run a single target
 ```
 
 Under the hood this issues:

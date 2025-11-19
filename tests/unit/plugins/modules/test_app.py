@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from plugins.modules import custom_app
+from plugins.modules import app
 
 
 class ModuleExit(Exception):
@@ -33,7 +33,7 @@ def _patch_module(monkeypatch, params, check_mode=False):
     module_params.setdefault("state", "present")
 
     monkeypatch.setattr(
-        custom_app,
+        app,
         "AnsibleModule",
         lambda *args, **kwargs: DummyModule(module_params, check_mode=check_mode),
     )
@@ -45,7 +45,7 @@ def _write_user_config(tmp_path, app_name, version, text):
     (config_dir / "user_config.yaml").write_text(text)
 
 
-def test_custom_app_creates_new_application(monkeypatch):
+def test_app_creates_new_application(monkeypatch):
     params = {
         "name": "redis",
         "compose_config": {"services": {"redis": {"image": "redis:alpine"}}},
@@ -68,20 +68,20 @@ def test_custom_app_creates_new_application(monkeypatch):
         def find_application(self, name):
             return None
 
-        def create_custom_app(self, name, compose_config):
+        def create_app(self, name, compose_config):
             self.created_args = (name, compose_config)
             return SimpleNamespace(name=name, state="DEPLOYING")
 
-        def update_custom_app(self, *args, **kwargs):
+        def update_app(self, *args, **kwargs):
             self.updated_args = (args, kwargs)
 
-        def delete_custom_app(self, *args, **kwargs):
+        def delete_app(self, *args, **kwargs):
             self.deleted_args = (args, kwargs)
 
-    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+    monkeypatch.setattr(app, "TruenasClient", FakeClient)
 
     with pytest.raises(ModuleExit) as captured:
-        custom_app.main()
+        app.main()
 
     result = captured.value.kwargs
     assert result["changed"] is True
@@ -91,7 +91,7 @@ def test_custom_app_creates_new_application(monkeypatch):
     assert instances[0].created_args == ("redis", params["compose_config"])
 
 
-def test_custom_app_detects_matching_config(monkeypatch, tmp_path):
+def test_app_detects_matching_config(monkeypatch, tmp_path):
     compose = {"services": {"redis": {"image": "redis:alpine"}}}
     params = {"name": "redis", "compose_config": compose}
     _patch_module(monkeypatch, params)
@@ -116,16 +116,16 @@ def test_custom_app_detects_matching_config(monkeypatch, tmp_path):
         def find_application(self, name):
             return {"name": name, "version": "1.0.0", "custom_app": True}
 
-        def update_custom_app(self, *args, **kwargs):
+        def update_app(self, *args, **kwargs):
             self.updated_args = (args, kwargs)
 
-        def delete_custom_app(self, *args, **kwargs):
+        def delete_app(self, *args, **kwargs):
             self.deleted_args = (args, kwargs)
 
-    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+    monkeypatch.setattr(app, "TruenasClient", FakeClient)
 
     with pytest.raises(ModuleExit) as captured:
-        custom_app.main()
+        app.main()
 
     result = captured.value.kwargs
     assert result["changed"] is False
@@ -135,7 +135,7 @@ def test_custom_app_detects_matching_config(monkeypatch, tmp_path):
     assert result["application"]["name"] == "redis"
 
 
-def test_custom_app_detects_different_config(monkeypatch, tmp_path):
+def test_app_detects_different_config(monkeypatch, tmp_path):
     current_yaml = textwrap.dedent(
         """
         services:
@@ -159,16 +159,16 @@ def test_custom_app_detects_different_config(monkeypatch, tmp_path):
         def find_application(self, name):
             return {"name": name, "version": "1.0", "custom_app": True}
 
-        def update_custom_app(self, name, compose_config):
+        def update_app(self, name, compose_config):
             self.updated_args = (name, compose_config)
 
-        def delete_custom_app(self, *args, **kwargs):
+        def delete_app(self, *args, **kwargs):
             self.deleted_args = (args, kwargs)
 
-    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+    monkeypatch.setattr(app, "TruenasClient", FakeClient)
 
     with pytest.raises(ModuleExit) as captured:
-        custom_app.main()
+        app.main()
 
     result = captured.value.kwargs
     assert result["changed"] is True
@@ -178,7 +178,7 @@ def test_custom_app_detects_different_config(monkeypatch, tmp_path):
     assert result["state"] == "present"
 
 
-def test_custom_app_absent_when_missing(monkeypatch):
+def test_app_absent_when_missing(monkeypatch):
     params = {"name": "redis", "state": "absent"}
     _patch_module(monkeypatch, params)
 
@@ -192,10 +192,10 @@ def test_custom_app_absent_when_missing(monkeypatch):
         def find_application(self, name):
             return None
 
-    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+    monkeypatch.setattr(app, "TruenasClient", FakeClient)
 
     with pytest.raises(ModuleExit) as captured:
-        custom_app.main()
+        app.main()
 
     result = captured.value.kwargs
     assert result["changed"] is False
@@ -203,7 +203,7 @@ def test_custom_app_absent_when_missing(monkeypatch):
     assert "already absent" in result["message"]
 
 
-def test_custom_app_absent_deletes_application(monkeypatch):
+def test_app_absent_deletes_application(monkeypatch):
     params = {"name": "redis", "state": "absent"}
     _patch_module(monkeypatch, params)
     instances = []
@@ -222,16 +222,16 @@ def test_custom_app_absent_deletes_application(monkeypatch):
         def find_application(self, name):
             return {"name": name, "version": "1.0", "custom_app": True}
 
-        def delete_custom_app(self, name):
+        def delete_app(self, name):
             self.deleted = name
 
-        def update_custom_app(self, *args, **kwargs):
+        def update_app(self, *args, **kwargs):
             self.updated_args = (args, kwargs)
 
-    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+    monkeypatch.setattr(app, "TruenasClient", FakeClient)
 
     with pytest.raises(ModuleExit) as captured:
-        custom_app.main()
+        app.main()
 
     result = captured.value.kwargs
     assert result["changed"] is True
@@ -240,7 +240,7 @@ def test_custom_app_absent_deletes_application(monkeypatch):
     assert instances[0].deleted == "redis"
 
 
-def test_custom_app_restart_runs_stop_start(monkeypatch):
+def test_app_restart_runs_stop_start(monkeypatch):
     params = {"name": "redis", "state": "restarted"}
     _patch_module(monkeypatch, params)
     instances = []
@@ -260,16 +260,16 @@ def test_custom_app_restart_runs_stop_start(monkeypatch):
         def find_application(self, name):
             return {"name": name, "version": "1.0", "custom_app": True}
 
-        def stop_custom_app(self, name):
+        def stop_app(self, name):
             self.stopped = name
 
-        def start_custom_app(self, name):
+        def start_app(self, name):
             self.started = name
 
-    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+    monkeypatch.setattr(app, "TruenasClient", FakeClient)
 
     with pytest.raises(ModuleExit) as captured:
-        custom_app.main()
+        app.main()
 
     result = captured.value.kwargs
     assert result["changed"] is True
@@ -279,7 +279,7 @@ def test_custom_app_restart_runs_stop_start(monkeypatch):
     assert instances[0].started == "redis"
 
 
-def test_custom_app_restart_check_mode(monkeypatch):
+def test_app_restart_check_mode(monkeypatch):
     params = {"name": "redis", "state": "restarted"}
     _patch_module(monkeypatch, params, check_mode=True)
 
@@ -293,10 +293,10 @@ def test_custom_app_restart_check_mode(monkeypatch):
         def find_application(self, name):
             return {"name": name, "version": "1.0", "custom_app": True}
 
-    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+    monkeypatch.setattr(app, "TruenasClient", FakeClient)
 
     with pytest.raises(ModuleExit) as captured:
-        custom_app.main()
+        app.main()
 
     result = captured.value.kwargs
     assert result["changed"] is True
@@ -304,7 +304,7 @@ def test_custom_app_restart_check_mode(monkeypatch):
     assert "would be restarted" in result["message"]
 
 
-def test_custom_app_restart_requires_existing_app(monkeypatch):
+def test_app_restart_requires_existing_app(monkeypatch):
     params = {"name": "redis", "state": "restarted"}
     _patch_module(monkeypatch, params)
 
@@ -318,9 +318,9 @@ def test_custom_app_restart_requires_existing_app(monkeypatch):
         def find_application(self, name):
             return None
 
-    monkeypatch.setattr(custom_app, "TruenasClient", FakeClient)
+    monkeypatch.setattr(app, "TruenasClient", FakeClient)
 
     with pytest.raises(ModuleFail) as captured:
-        custom_app.main()
+        app.main()
 
     assert "cannot restart" in captured.value.kwargs["msg"]

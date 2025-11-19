@@ -1,6 +1,6 @@
 # ansible-collection-truenas-scale
 
-Ansible collection that automates management of TrueNAS SCALE resources. The initial release focuses on applications, providing the `mareckii.truenas_scale.custom_app` module to create, update, and remove custom compose deployments via the SCALE API. The collection is structured to grow with additional modules, roles, and documentation as more SCALE features are automated.
+Ansible collection that automates management of TrueNAS SCALE resources. The initial release focuses on applications, providing the `mareckii.truenas_scale.app` module to create, update, and remove custom compose deployments via the SCALE API. Catalog applications are not supported yet because the upstream API does not expose those operations. The collection is structured to grow with additional modules, roles, and documentation as more SCALE features are automated.
 
 ## Features
 
@@ -26,7 +26,7 @@ Once installed, call the modules directly from your playbooks:
 
 ```yaml
 - name: Deploy redis custom application
-  mareckii.truenas_scale.custom_app:
+  mareckii.truenas_scale.app:
     name: redis
     compose_config:
       services:
