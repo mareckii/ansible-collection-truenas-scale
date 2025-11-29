@@ -40,3 +40,4 @@ Modules
 ~~~~~~~
 
 * `app module <app_module.rst>`_ -- Manage TrueNAS SCALE applications
+* `cronjob module <cronjob_module.rst>`_ -- Manage TrueNAS SCALE cron jobs

@@ -1,0 +1,113 @@
+---
+- name: Define cron job test inputs
+  ansible.builtin.set_fact:
+    cronjob_name: "{{ lookup('ansible.builtin.env', 'TRUENAS_LIVE_CRONJOB_NAME') | default('ansible-integration-cronjob', true) }}"
+    base_command: /bin/true
+    update_command: /bin/false
+    morning_schedule:
+      minute: "0"
+      hour: "6"
+    evening_schedule:
+      minute: "30"
+      hour: "18"
+
+- name: Ensure cron job is absent before starting
+  become: true
+  mareckii.truenas_scale.cronjob:
+    name: "{{ cronjob_name }}"
+    state: absent
+  register: cleanup_result
+
+- name: Create cron job on the target host
+  become: true
+  mareckii.truenas_scale.cronjob:
+    name: "{{ cronjob_name }}"
+    command: "{{ base_command }}"
+    schedule: "{{ morning_schedule }}"
+  register: create_result
+
+- name: Assert cron job creation result
+  ansible.builtin.assert:
+    that:
+      - create_result.changed
+      - create_result.state == 'present'
+      - create_result.diff.before is none
+      - create_result.diff.after.schedule.hour == '6'
+    fail_msg: Cron job creation did not match expectations
+
+- name: Re-run module to validate idempotency
+  become: true
+  mareckii.truenas_scale.cronjob:
+    name: "{{ cronjob_name }}"
+    command: "{{ base_command }}"
+    schedule: "{{ morning_schedule }}"
+  register: idempotent_result
+
+- name: Assert module is idempotent when configuration matches
+  ansible.builtin.assert:
+    that:
+      - not idempotent_result.changed
+      - idempotent_result.diff.before.schedule.hour == '6'
+      - idempotent_result.diff.after.schedule.hour == '6'
+    fail_msg: Expected no changes when cron job configuration matched
+
+- name: Update cron job command and schedule
+  become: true
+  mareckii.truenas_scale.cronjob:
+    name: "{{ cronjob_name }}"
+    command: "{{ update_command }}"
+    schedule: "{{ evening_schedule }}"
+  register: update_result
+
+- name: Assert cron job update result
+  ansible.builtin.assert:
+    that:
+      - update_result.changed
+      - update_result.diff.before.schedule.hour == '6'
+      - update_result.diff.after.schedule.hour == '18'
+      - update_result.diff.after.command == update_command
+    fail_msg: Cron job update did not detect expected differences
+
+- name: Disable cron job
+  become: true
+  mareckii.truenas_scale.cronjob:
+    name: "{{ cronjob_name }}"
+    command: "{{ update_command }}"
+    enabled: false
+    schedule: "{{ evening_schedule }}"
+  register: disable_result
+
+- name: Assert disable result
+  ansible.builtin.assert:
+    that:
+      - disable_result.changed
+      - not disable_result.diff.after.enabled
+    fail_msg: Module did not report disabling cron job
+
+- name: Remove cron job at end of test
+  become: true
+  mareckii.truenas_scale.cronjob:
+    name: "{{ cronjob_name }}"
+    state: absent
+  register: delete_result
+
+- name: Assert cron job removal
+  ansible.builtin.assert:
+    that:
+      - delete_result.changed
+      - delete_result.state == 'absent'
+    fail_msg: Module did not report removal
+
+- name: Confirm cron job is idempotently absent
+  become: true
+  mareckii.truenas_scale.cronjob:
+    name: "{{ cronjob_name }}"
+    state: absent
+  register: absent_result
+
+- name: Assert already absent behavior
+  ansible.builtin.assert:
+    that:
+      - not absent_result.changed
+      - '"already absent" in absent_result.message'
+    fail_msg: Module should report already absent cron job

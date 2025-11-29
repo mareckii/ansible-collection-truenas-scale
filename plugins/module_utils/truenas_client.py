@@ -86,6 +86,22 @@ class TruenasClient:
         app = self._client.call("app.start", name, job=True)
         return app
 
+    def find_cronjob(self, name: str):
+        jobs = self._client.call("cronjob.query")
+        for job in jobs:
+            if job.get("description") == name:
+                return job
+        return None
+
+    def create_cronjob(self, payload: Dict[str, Any]):
+        return self._client.call("cronjob.create", payload)
+
+    def update_cronjob(self, job_id: int, payload: Dict[str, Any]):
+        return self._client.call("cronjob.update", job_id, payload)
+
+    def delete_cronjob(self, job_id: int):
+        return self._client.call("cronjob.delete", job_id)
+
 
 class _StubApiClient:
     """File-backed stub used for ansible-test integration runs."""
@@ -131,6 +147,18 @@ class _StubApiClient:
         if method == "app.start":
             name = args[0]
             return self._set_state(state, name, "DEPLOYING")
+        if method == "cronjob.query":
+            return [dict(job) for job in state["cronjobs"]]
+        if method == "cronjob.create":
+            payload = args[0]
+            return self._create_cronjob(state, payload)
+        if method == "cronjob.update":
+            job_id = args[0]
+            payload = args[1]
+            return self._update_cronjob(state, job_id, payload)
+        if method == "cronjob.delete":
+            job_id = args[0]
+            return self._delete_cronjob(state, job_id)
         raise ValueError("Unsupported stub call: {}".format(method))
 
     def _create_app(self, state: Dict[str, Any], payload: Dict[str, Any]):
@@ -189,9 +217,61 @@ class _StubApiClient:
     def _load_state(self) -> Dict[str, Any]:
         if self._state_path.exists():
             with self._state_path.open("r", encoding="utf-8") as handle:
-                return json.load(handle)
-        return {"apps": []}
+                state = json.load(handle)
+        else:
+            state = {}
+        state.setdefault("apps", [])
+        state.setdefault("cronjobs", [])
+        state.setdefault("next_cronjob_id", 1)
+        return state
 
     def _write_state(self, state: Dict[str, Any]):
         with self._state_path.open("w", encoding="utf-8") as handle:
             json.dump(state, handle)
+
+    def _create_cronjob(self, state: Dict[str, Any], payload: Dict[str, Any]):
+        cronjobs = state["cronjobs"]
+        description = payload["description"]
+        if any(job["description"] == description for job in cronjobs):
+            raise ValueError("Cron job '{}' already exists".format(description))
+        job_id = state.get("next_cronjob_id", 1)
+        state["next_cronjob_id"] = job_id + 1
+        job = {
+            "id": job_id,
+            "description": description,
+            "command": payload.get("command"),
+            "user": payload.get("user", "root"),
+            "enabled": payload.get("enabled", True),
+            "schedule": payload.get("schedule") or {},
+        }
+        cronjobs.append(job)
+        self._write_state(state)
+        return dict(job)
+
+    def _update_cronjob(
+        self, state: Dict[str, Any], job_id: int, payload: Dict[str, Any]
+    ):
+        cronjobs = state["cronjobs"]
+        for job in cronjobs:
+            if job["id"] == job_id:
+                job.update(
+                    {
+                        "description": payload.get("description", job["description"]),
+                        "command": payload.get("command", job["command"]),
+                        "user": payload.get("user", job["user"]),
+                        "enabled": payload.get("enabled", job["enabled"]),
+                        "schedule": payload.get("schedule", job["schedule"]),
+                    }
+                )
+                self._write_state(state)
+                return dict(job)
+        raise ValueError("Cron job '{}' not found".format(job_id))
+
+    def _delete_cronjob(self, state: Dict[str, Any], job_id: int):
+        cronjobs = state["cronjobs"]
+        existing = [job for job in cronjobs if job["id"] != job_id]
+        if len(existing) == len(cronjobs):
+            raise ValueError("Cron job '{}' not found".format(job_id))
+        state["cronjobs"] = existing
+        self._write_state(state)
+        return {"id": job_id}
