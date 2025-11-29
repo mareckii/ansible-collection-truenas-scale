@@ -1,10 +1,11 @@
 # ansible-collection-truenas-scale
 
-Ansible collection that automates management of TrueNAS SCALE resources. The initial release focuses on applications, providing the `mareckii.truenas_scale.app` module to create, update, and remove custom compose deployments via the SCALE API. Catalog applications are not supported yet because the upstream API does not expose those operations. The collection is structured to grow with additional modules, roles, and documentation as more SCALE features are automated.
+Ansible collection that automates management of TrueNAS SCALE resources. The initial release focused on applications, providing the `mareckii.truenas_scale.app` module to create, update, and remove custom compose deployments via the SCALE API. Catalog applications are not supported yet because the upstream API does not expose those operations. The collection is structured to grow with additional modules, roles, and documentation as more SCALE features are automated, and now includes cron job management as well.
 
 ## Features
 
 - **Custom applications** – declaratively ensure custom compose deployments exist with the desired configuration, view diffs, and remove apps when they are no longer needed.
+- **Cron jobs** – manage SCALE cron jobs (`mareckii.truenas_scale.cronjob`) with idempotent create/update/delete operations, including diff/check-mode support.
 - **Reusable client utilities** – shared module utils encapsulate API access patterns so new modules can be added quickly.
 - **Integration-first design** – modules follow Ansible best practices (idempotent, check mode aware) so they drop cleanly into existing playbooks.
 - **Direct middleware access** – modules connect to the TrueNAS SCALE middleware over SSH and require sudo privileges. Compose content is still fetched from on-box files (`user_config.yaml`) because the API does not expose it yet.
@@ -32,6 +33,14 @@ Once installed, call the modules directly from your playbooks:
       services:
         redis:
           image: redis:alpine
+
+- name: Ensure nightly cron job is present
+  mareckii.truenas_scale.cronjob:
+    name: nightly backup
+    command: /usr/local/bin/backup.sh
+    schedule:
+      minute: "0"
+      hour: "2"
 ```
 
 ## Development quickstart
