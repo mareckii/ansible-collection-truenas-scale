@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: pip install ansible-core
+
+      - name: Build collection
+        run: ansible-galaxy collection build
+
+      - name: Publish to Ansible Galaxy
+        run: ansible-galaxy collection publish mareckii-truenas_scale-*.tar.gz --token ${{ secrets.ANSIBLE_GALAXY_TOKEN }}

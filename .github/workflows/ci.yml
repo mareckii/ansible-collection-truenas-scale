@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  sanity:
+    name: Sanity ({{ matrix.ansible }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ansible:
+          - stable-2.15
+          - stable-2.16
+          - devel
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ansible-base
+        run: pip install https://github.com/ansible/ansible/archive/${{ matrix.ansible }}.tar.gz --disable-pip-version-check
+
+      - name: Run sanity tests
+        run: ansible-test sanity --docker -v --color
+
+  units:
+    name: Units ({{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python:
+          - '3.10'
+          - '3.11'
+          - '3.12'
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install https://github.com/ansible/ansible/archive/stable-2.16.tar.gz --disable-pip-version-check
+
+      - name: Run unit tests
+        run: ansible-test units --python ${{ matrix.python }} -v --color
